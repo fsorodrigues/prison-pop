@@ -1,13 +1,18 @@
 // importing d3.js
 import * as d3 from 'd3';
+import textures from 'textures';
+
+// importing util functions
+import {parseTime,parseTimeYear,formatTimeYear,isMobile} from '../utils';
 
 // importing modules
-import {formatMillionsMoney,parseTimeYear,formatTimeYear} from '../utils';
+import MouseTarget from './MouseTarget';
 
 // importing stylesheets
-import '../style/axis.css';
 
-// setting up modules
+// instantiating modules
+const mouseTarget = MouseTarget();
+const mobile = isMobile();
 
 // defining global variables
 
@@ -15,14 +20,18 @@ import '../style/axis.css';
 function AreaChart(_) {
 
     /* CREATE GETTER SETTER PATTERN */
-    let _margin = {t:10, r:25, b:20, l:35};
+    let _margin = {t:0, r:0, b:0, l:0};
     let _curve = d3.curveLinear;
     let _axisOpacity = 0;
-    let _accessor = 'Sector';
+    let _yAxis = 'value';
+    let _minDate = parseTime('12/31/2015');
+
+    const _dispatch = d3.dispatch('change:date');
 
     function exports(data) {
-        // selecting root element ==> chart container, div where function is called in index.js
-        const root = _;
+
+        const root = this;
+        const container = d3.select(root);
 
         // declaring setup/layout variables
         const clientWidth = root.clientWidth;
@@ -33,26 +42,25 @@ function AreaChart(_) {
 
         // appending svg & <g> plot
         // update selection
-        let svg = d3.select(root)
+        let svgUpdate = d3.select(root)
             .selectAll('svg')
-            .data([1]);
+            .data([data]);
         // enter selection
-        const svgEnter = svg.enter()
+        const svgEnter = svgUpdate.enter()
             .append('svg');
         // exit selection
-        svg.exit().remove();
+        svgUpdate.exit().remove();
         // enter+update selection
-        svg = svg.merge(svgEnter)
+        svgUpdate = svgUpdate.merge(svgEnter)
             .attr('height', clientHeight)
             .attr('width', clientWidth);
 
         // update selection
-        let plotUpdate = svg.selectAll('.plot')
-            .data([1]);
+        let plotUpdate = svgUpdate.selectAll('.plot')
+            .data(d => [d]);
         // enter selection
         const plotEnter = plotUpdate.enter()
             .append('g')
-            .attr('class','vertical')
             .classed('plot', true)
 			.attr('transform',`translate(${margin.l},${margin.t})`);
         // exit selection
@@ -60,87 +68,151 @@ function AreaChart(_) {
         // enter+update selection
         plotUpdate = plotUpdate.merge(plotEnter);
 
-        const listYears = Object.keys(data[0]).filter(d => +d);
-        const sumYears = [];
-
-        for(let year in listYears) {
-            const sum = d3.sum(data, d => +d[listYears[year]]);
-            const objectify = {'year':+listYears[year],'sum':sum};
-            sumYears.push(objectify);
-        }
-
-        const minYear = d3.min(sumYears,d => d.year);
-        const maxYear = d3.max(sumYears,d => d.year);
+        // data transformation
+        const listDates = data.map(d => parseTime(d.date));
+        const minDate = d3.min(listDates);
+        const getMin = d3.min([minDate,_minDate]);
+        const maxDate = d3.max(listDates);
+        const maxValue = d3.max(data,d => d[_yAxis]);
 
         // setting up scales
         const scaleX = d3.scaleTime()
-            .domain([parseTimeYear(minYear),parseTimeYear(maxYear)])
+            .domain([getMin,maxDate])
             .range([0,w]);
+
         const scaleY = d3.scaleLinear()
-            .domain([0,d3.max(sumYears, d => d.sum)])
-            .range([h,0]);
-
-        // setting up line generator path
-        const line = d3.area()
-            .x(d => scaleX(parseTimeYear(+d.year)))
-            .y(d => scaleY(d.sum))
-            .curve(_curve);
-
-        const area = d3.area()
-            .x(d => scaleX(parseTimeYear(+d.year)))
-            .y0(d => scaleY(0))
-            .y1(d => scaleY(d.sum))
-            .curve(_curve);
-
-        // appending <g> to plot
-        // individual <g> for areas
-        // enter-exit-update pattern
-        // update selection
-        let groupUpdate = plotUpdate.selectAll('.line-wrapper')
-            .data([sumYears]);
-        // enter selection
-        const groupEnter = groupUpdate.enter()
-            .append('g');
-        // exit selection
-        groupUpdate.exit().remove();
-        // update + enter selection
-        groupUpdate = groupUpdate.merge(groupEnter)
-            .classed('line', true);
-
-        // appending paths to groups
-        let lineUpdate = groupUpdate.selectAll('.area-chart')
-            .data(d => [d]);
-        const lineEnter = lineUpdate.enter()
-            .append('path');
-        lineUpdate = lineUpdate.merge(lineEnter)
-            .classed('area-chart', true)
-            .attr('d', area)
-            .style('fill', '#FFA500')
-            .style('fill-opacity',0.5);
-
-        let areaUpdate = groupUpdate.selectAll('.line-chart')
-            .data(d => [d]);
-        const areaEnter = areaUpdate.enter()
-            .append('path');
-        areaUpdate = areaUpdate.merge(areaEnter)
-            .classed('line-chart', true)
-            .attr('d', line)
-            .style('stroke', '#FFA500')
-            .style('stroke-width',2)
-            .style('fill', 'none')
-            .style('fill-opacity',0);
+            .domain([0,maxValue])
+            .range([h,0])
+            .nice();
 
         //Set up axis generator
         const axisY = d3.axisLeft()
             .scale(scaleY)
             .tickSize(-w)
-            .ticks(5)
-            .tickFormat(d => formatMillionsMoney(d));
+            .ticks(3);
 
         const axisX = d3.axisBottom()
             .scale(scaleX)
-            .ticks(5)
+            .tickSize(0)
+            .ticks(d3.timeYear.every(1))
             .tickFormat(d => formatTimeYear(d));
+
+        if (mobile) {
+            axisX.ticks(d3.timeYear.every(2));
+        }
+
+        // setting up line generator path
+        const line = d3.line()
+            .x(d => scaleX(parseTime(d.date)))
+            .y(d => scaleY(d[_yAxis]))
+            .curve(_curve);
+
+        const area = d3.area()
+            .x(d => scaleX(parseTime(d.date)))
+            .y0(d => scaleY(0))
+            .y1(d => scaleY(d[_yAxis]))
+            .curve(_curve);
+
+        // individual <g> for area/line
+        // enter-exit-update pattern
+        // update selection
+        let lineWrapperUpdate = plotUpdate.selectAll('.line-chart')
+            .data([data]);
+        // enter selection
+        const lineWrapperEnter = lineWrapperUpdate.enter()
+            .append('g')
+            .classed('line-chart',true);
+        // exit selection
+        lineWrapperUpdate.exit().remove();
+        // update + enter selection
+        lineWrapperUpdate = lineWrapperUpdate.merge(lineWrapperEnter);
+
+        let areaWrapperUpdate = plotUpdate.selectAll('.area-chart')
+            .data([data]);
+        // enter selection
+        const areaWrapperEnter = areaWrapperUpdate.enter()
+            .append('g')
+            .classed('area-chart',true);
+        // exit selection
+        areaWrapperUpdate.exit().remove();
+        // update + enter selection
+        areaWrapperUpdate = areaWrapperUpdate.merge(areaWrapperEnter);
+
+        // appending paths to groups
+        let areaUpdate = areaWrapperUpdate.selectAll('.area-node')
+            .data(d => [d]);
+        const areaEnter = areaUpdate.enter()
+            .append('path')
+            .classed('area-node', true);
+        areaUpdate = areaUpdate.merge(areaEnter)
+            .attr('d', area)
+            .style('stroke', 'none')
+            .style('stroke-width',0)
+            .style('fill', 'black')
+            .style('fill-opacity',0.6);
+
+        let lineUpdate = lineWrapperUpdate.selectAll('.line-node')
+            .data(d => [d]);
+        const lineEnter = lineUpdate.enter()
+            .append('path');
+        lineUpdate = lineUpdate.merge(lineEnter)
+            .classed('line-node', true)
+            .attr('d', line)
+            .style('stroke', 'black')
+            .style('stroke-width',2)
+            .style('fill', 'none')
+            .style('fill-opacity',0);
+
+        // creating pattern with textures module
+        const texture = textures.lines()
+            .size(10)
+            .strokeWidth(0.25)
+            .stroke('#C0C0C0')
+            .background('#F5F5F5');
+        svgUpdate.call(texture);
+
+        // drawing rect for unavailable data
+        let dataNAWrapperUpdate = plotUpdate.selectAll('.data-unavailable-node')
+            .data([1]);
+        // enter selection
+        const dataNAWrapperEnter = dataNAWrapperUpdate.enter()
+            .append('g')
+            .classed('data-unavailable-node',true);
+        // exit selection
+        dataNAWrapperUpdate.exit().remove();
+        // update + enter selection
+        dataNAWrapperUpdate = dataNAWrapperUpdate.merge(dataNAWrapperEnter);
+
+        let dataNAUpdate = dataNAWrapperUpdate.selectAll('.data-unavailable-rect')
+            .data([1]);
+        // enter selection
+        const dataNAEnter = dataNAUpdate.enter()
+            .append('rect')
+            .classed('data-unavailable-rect',true);
+        // exit selection
+        dataNAUpdate.exit().remove();
+        // update + enter selection
+        dataNAUpdate = dataNAUpdate.merge(dataNAEnter)
+            .attr('width',scaleX(minDate))
+            .attr('height',h-scaleY(610))
+            .attr('y',scaleY(610))
+            .attr('fill', texture.url());
+
+        let dataNATextUpdate = dataNAWrapperUpdate.selectAll('.data-unavailable-text')
+            .data([1]);
+        // enter selection
+        const dataNATextEnter = dataNATextUpdate.enter()
+            .append('text')
+            .classed('data-unavailable-text',true);
+        // exit selection
+        dataNATextUpdate.exit().remove();
+        // update + enter selection
+        dataNATextUpdate = dataNATextUpdate.merge(dataNATextEnter)
+            .attr('x',scaleX(minDate)/2)
+            .attr('y',scaleY(625))
+            .attr('fill', 'black')
+            .attr('text-anchor','middle')
+            .text('Data N/A');
 
         // draw axis
         // x-axis
@@ -160,20 +232,55 @@ function AreaChart(_) {
             .attr('class','axis axis-y vertical');
         axisYNode.merge(axisYNodeEnter)
             .attr('transform',`translate(${0},${0})`)
-            .call(axisY);
-
-        plotUpdate.select('.axis-y')
+            .call(axisY)
             .select('.tick:first-of-type')
             .style('opacity',_axisOpacity);
+
+        mouseTarget.margin(_margin)
+            .minDate(getMin);
+        plotUpdate.each(mouseTarget);
+
+        mouseTarget.on('mousemove:x',function(d) {
+            _dispatch.call('change:date',null,d);
+        });
+
     }
 
-    // create getter-setter pattern for customization
+    // // create getter-setter pattern for customization
+    exports.on = function(eventType,cb) {
+        // eventType is a string ===> custom eventType
+        // cb is a function ===> callback
+        _dispatch.on(eventType,cb);
+        return this;
+    };
+
     exports.curve = function(_) {
 		// _ is a d3 built-in function
 		if (typeof _ === "undefined") return _curve;
 		_curve = _;
 		return this;
 	};
+
+    exports.margin = function(_) {
+            // _ expects a json object {t:,r:,b:,l:}
+            if (_ === 'undefined') return _margin;
+            _margin = _;
+            return this;
+    };
+
+    exports.yAxis = function(_) {
+		// _ is a string ===> indicated which property will encode y axis
+		if (typeof _ === "undefined") return _yAxis;
+		_yAxis = _;
+		return this;
+	};
+
+    exports.minDate = function(_) {
+        // is a date object
+        if (_ === 'undefined') return _minDate;
+        _minDate = _;
+        return this;
+    };
 
     // returning module
     return exports;

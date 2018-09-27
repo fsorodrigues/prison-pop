@@ -1,62 +1,55 @@
-.test {
-    height: 500px;
+@import url('https://fonts.googleapis.com/css?family=Roboto:400,700|Roboto+Slab:300,700');
+
+.wrapper-d3 {
+    font-family: 'Roboto', Verdana, sans-serif;
+    height: 600px;
+    position: relative;
 }
 
-.content {
-    width: 66%;
+.wrapper-map-d3 {
+    height: 75%;
+    margin-bottom: 5%
 }
 
-#firms-networks-tooltip,
-#firms-networks-2-tooltip {
-    background-color: gainsboro;
-    border-radius: 0.2rem;
+.wrapper-area-chart-d3 {
+    height: 20%;
+}
+
+.wrapper-date-d3 {
+    position: absolute;
+    top:75%;
+    right:5px;
+}
+
+@media (max-width:590px) {
+    .wrapper-map-d3 {
+        height: 55%;
+        margin-bottom: 5%
+    }
+
+    .wrapper-area-chart-d3 {
+        height: 40%;
+    }
+
+    .wrapper-date-d3 {
+        top:55%;
+    }
+}
+
+.wrapper-area-chart-d3 .axis .domain {
+    display: none;
+}
+
+.wrapper-area-chart-d3 .data-unavailable-text {
     font-size: 0.7rem;
-    line-height: 1.2rem;
-    max-width: 250px;
-    position:absolute;
-    pointer-events: none;
 }
 
-.info-entity {
-    margin: 0.5rem 1rem;
+.wrapper-date-d3 .anchor-text {
+    font-size: 1rem;
+    font-variant: small-caps;
 }
 
-#firms-networks-2,
-#sectors-top25 {
-    min-height: 600px;
-}
-
-#firms-networks,
-#firms-top10,
-#sectors-yearly,
-#lobby-totals,
-#gun-totals,
-#marijuana-totals,
-#health-care-totals,
-#top5-employers-sectors,
-#lobby-campaign-lines {
-    min-height: 400px;
-}
-
-#sectors-top25-slider,
-#firms-top10-slider,
-#sectors-yearly-menu,
-#firms-networks-menu,
-#firms-networks-2-menu {
-    margin-bottom: 1.5rem;
-}
-
-
-svg {
-    display:block;
-}
-
-.wrapper {
-    margin: 10% 5%;
-    /* position: relative; */
-    width:100%;
-}
-
-html {
-    font-family: Verdana;
+.wrapper-date-d3 .date-text {
+    font-size: 1.2rem;
+    font-weight: 700;
 }
