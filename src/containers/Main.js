@@ -22,6 +22,7 @@ function Main(_) {
 
     // TO DO: create getter-setter variables in factory scope
     let _margin = {t:0, r:0, b:0, l:0};
+    let _isMobile = false;
 
     function exports(population,timeline,mapTile) {
 
@@ -31,8 +32,10 @@ function Main(_) {
         // declaring setup/layout variables
 
         // instantiating modules
-        const usMap = MapProjection(mapTile.features);
-        const drawCircles = DrawCircles(mapTile.features);
+        const usMap = MapProjection(mapTile.features)
+            .isMobile(_isMobile);
+        const drawCircles = DrawCircles(mapTile.features)
+            .isMobile(_isMobile);
 
         // data transformation
         const listDates = timeline.map(d => parseTime(d.start_date));
@@ -60,7 +63,8 @@ function Main(_) {
         areaChartContainerUpdate = areaChartContainerUpdate.merge(areaChartContainerEnter);
 
         areaChart.margin(_margin)
-            .minDate(minDate);
+            .minDate(minDate)
+            .isMobile(_isMobile);
         areaChartContainerUpdate.each(areaChart);
 
         let dateDisplayContainerUpdate = container.selectAll('.wrapper-date-d3')
@@ -81,16 +85,21 @@ function Main(_) {
             dateDisplayContainerUpdate.data([d])
                 .each(dateDisplay);
         });
-
-
     }
 
     // create getter-setter pattern for customization
     exports.margin = function(_) {
-            // _ expects a json object {t:,r:,b:,l:}
-            if (_ === 'undefined') return _margin;
-            _margin = _;
-            return this;
+        // _ expects a json object {t:,r:,b:,l:}
+        if (_ === 'undefined') return _margin;
+        _margin = _;
+        return this;
+    };
+
+    exports.isMobile = function(_) {
+        // _ expects a boolean
+        if (_ === 'undefined') return _isMobile;
+        _isMobile = _;
+        return this;
     };
 
     // returning of module

@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import textures from 'textures';
 
 // importing util functions
-import {parseTime,parseTimeYear,formatTimeYear,isMobile} from '../utils';
+import {parseTime,parseTimeYear,formatTimeYear} from '../utils';
 
 // importing modules
 import MouseTarget from './MouseTarget';
@@ -12,7 +12,6 @@ import MouseTarget from './MouseTarget';
 
 // instantiating modules
 const mouseTarget = MouseTarget();
-const mobile = isMobile();
 
 // defining global variables
 
@@ -25,6 +24,7 @@ function AreaChart(_) {
     let _axisOpacity = 0;
     let _yAxis = 'value';
     let _minDate = parseTime('12/31/2015');
+    let _isMobile = false;
 
     const _dispatch = d3.dispatch('change:date');
 
@@ -97,7 +97,7 @@ function AreaChart(_) {
             .ticks(d3.timeYear.every(1))
             .tickFormat(d => formatTimeYear(d));
 
-        if (mobile) {
+        if (_isMobile) {
             axisX.ticks(d3.timeYear.every(2));
         }
 
@@ -246,7 +246,7 @@ function AreaChart(_) {
 
     }
 
-    // // create getter-setter pattern for customization
+    // create getter-setter pattern for customization
     exports.on = function(eventType,cb) {
         // eventType is a string ===> custom eventType
         // cb is a function ===> callback
@@ -279,6 +279,13 @@ function AreaChart(_) {
         // is a date object
         if (_ === 'undefined') return _minDate;
         _minDate = _;
+        return this;
+    };
+
+    exports.isMobile = function(_) {
+        // _ expects a boolean
+        if (_ === 'undefined') return _isMobile;
+        _isMobile = _;
         return this;
     };
 

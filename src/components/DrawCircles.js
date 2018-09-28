@@ -6,10 +6,9 @@ import * as d3 from 'd3';
 // importing stylesheets
 
 // importing utitily functions
-import {parseTime,isMobile} from '../utils';
+import {parseTime} from '../utils';
 
 // instantiating mobile check
-const mobile = isMobile();
 
 // defining global variables
 
@@ -18,13 +17,9 @@ function MapProjection(mapTile) {
 
     // create getter-setter variables in factory scope
     let _margin = {t:0, r:0, b:0, l:0};
-    // let _interpolator = d3.piecewise(d3.interpolateRgb.gamma(0.5), ["#FF8C00",'white',"#003c30"]);
     let _display = 'state';
     let _minDate = parseTime('12/31/2015');
-    // let _max = 0.3;
-    // let _display = 'Temporary order denied'
-    // let _display = 'Withdrawn by plaintiff'
-    // let _display = 'Dismissed on merits'
+    let _isMobile = false;
 
     // let _dispatch = d3.dispatch('node:enter','node:leave');
 
@@ -46,7 +41,7 @@ function MapProjection(mapTile) {
             .scale(890)
             .translate([w/2,h/2]);
 
-        if (mobile) {
+        if (_isMobile) {
             mapProjection.scale(465)
                 .translate([w/2,h/2]);
         }
@@ -77,7 +72,6 @@ function MapProjection(mapTile) {
 
 
         let centroids = mapTile.map(d => {
-            // console.log(d);
             return {
                 state: d.properties.NAME,
                 coordinates: path.centroid(d)
@@ -85,7 +79,6 @@ function MapProjection(mapTile) {
         });
 
         centroids = d3.map(centroids,d => d.state);
-
 
         let circlesUpdate = container.selectAll('.circle-tile')
             .data([1]);
@@ -106,37 +99,33 @@ function MapProjection(mapTile) {
             .attr('cy', d => centroids.get(d.state).coordinates[1])
             .attr('r', 5);
 
+        if (_isMobile) {
+            circleNodeUpdate.attr('r',3);
+        }
+
     }
 
     // create getter-setter pattern for customization
-
     exports.margin = function(_) {
             // _ expects a json object {t:,r:,b:,l:}
             if (_ === 'undefined') return _margin;
             _margin = _;
             return this;
     };
-    //
-    // exports.on = function(eventType,cb) {
-    //     // eventType is a string ===> custom eventType
-    //     // cb is a function ===> callback
-    //     _dispatch.on(eventType,cb);
-    //     return this;
-    // };
-    //
+
     exports.minDate = function(_) {
         // is a date object
         if (_ === 'undefined') return _minDate;
         _minDate = _;
         return this;
     };
-    //
-    // exports.interpolator = function(_) {
-    //     // is a d3 built-in color scheme
-    //     if (_ === 'undefined') return _interpolator;
-    //     _interpolator = _;
-    //     return this;
-    // };
+
+    exports.isMobile = function(_) {
+        // _ expects a boolean
+        if (_ === 'undefined') return _isMobile;
+        _isMobile = _;
+        return this;
+    };
 
     // returning of module
     return exports;
