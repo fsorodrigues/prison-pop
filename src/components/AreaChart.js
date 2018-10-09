@@ -1,5 +1,6 @@
 // importing d3.js
 import * as d3 from 'd3';
+// importing textures.js
 import textures from 'textures';
 
 // importing util functions
@@ -236,10 +237,12 @@ function AreaChart(_) {
             .select('.tick:first-of-type')
             .style('opacity',_axisOpacity);
 
+        // create mouseTarget element
         mouseTarget.margin(_margin)
             .minDate(getMin);
         plotUpdate.each(mouseTarget);
 
+        // handle event
         mouseTarget.on('mousemove:x',function(d) {
             _dispatch.call('change:date',null,d);
         });

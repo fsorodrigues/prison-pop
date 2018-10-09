@@ -1,4 +1,9 @@
-import {format,timeParse,timeFormat} from 'd3';
+import {format,timeParse,timeFormat,scaleOrdinal} from 'd3';
+
+export const timeConstant = (days) => 1000*60*60*24*days; // day in miliseconds
+
+export const invertButton = scaleOrdinal().domain(['play','pause'])
+    .range(['pause','play']);
 
 export const formatSuffix = (number) => {
     const suffixes = ["th", "st", "nd", "rd"];

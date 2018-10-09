@@ -2,7 +2,7 @@
 import * as d3 from 'd3';
 
 // importing accessory functions
-import {parseTime} from '../utils';
+import {parseTime,invertButton} from '../utils';
 
 // importing stylesheets
 
@@ -11,11 +11,15 @@ import MapProjection from '../components/MapProjection';
 import AreaChart from '../components/AreaChart';
 import DrawCircles from '../components/DrawCircles';
 import DateDisplay from '../components/DateDisplay';
+import PlayButton from '../components/PlayButton';
+import Animation from '../components/Animation';
 
 // instantiating modules
 const areaChart = AreaChart()
     .yAxis('average_population');
 const dateDisplay = DateDisplay();
+const playButton = PlayButton();
+const animation = Animation();
 
 // defining Factory function
 function Main(_) {
@@ -53,6 +57,7 @@ function Main(_) {
         mapContainerUpdate.each(usMap);
         drawCircles.minDate(minDate);
         mapContainerUpdate.each(drawCircles);
+        mapContainerUpdate.each(playButton);
 
         let areaChartContainerUpdate = container.selectAll('.wrapper-area-chart-d3')
             .data([population]);
@@ -79,11 +84,43 @@ function Main(_) {
 
         // handling events
         areaChart.on('change:date',function(d) {
+            animation.minDate(d)
+                .animate(false);
+            animation();
+
+            if (playButton.getAnimate()) {
+                playButton.animate(false);
+                mapContainerUpdate.each(playButton);
+            }
+
             drawCircles.minDate(d);
             mapContainerUpdate.each(drawCircles);
 
             dateDisplayContainerUpdate.data([d])
                 .each(dateDisplay);
+        });
+
+        animation.minDate(minDate)
+            .origin(minDate);
+
+        animation.on('change:date',function(d) {
+            drawCircles.minDate(d);
+            mapContainerUpdate.each(drawCircles);
+
+            dateDisplayContainerUpdate.data([d])
+                .each(dateDisplay);
+        });
+
+        playButton.on('animation:play',function(d) {
+            playButton.animate(true);
+            animation.animate(true);
+            animation();
+        });
+        playButton.on('animation:pause',function(d) {
+            playButton.animate(false);
+            animation.minDate(animation.getMinDate())
+                .animate(false);
+            animation();
         });
     }
 
